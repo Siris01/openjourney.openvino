@@ -7,7 +7,6 @@ from transformers import CLIPTokenizer
 # utils
 from tqdm import tqdm
 from huggingface_hub import hf_hub_download
-from diffusers import LMSDiscreteScheduler, PNDMScheduler
 import cv2
 
 
@@ -62,12 +61,12 @@ class StableDiffusionEngine:
             mask = cv2.resize(
                 mask,
                 (self.init_image_shape[1], self.init_image_shape[0]),
-                interpolation = cv2.INTER_NEAREST
+                interpolation=cv2.INTER_NEAREST
             )
         mask = cv2.resize(
             mask,
             (self.init_image_shape[1] // 8, self.init_image_shape[0] // 8),
-            interpolation = cv2.INTER_NEAREST
+            interpolation=cv2.INTER_NEAREST
         )
         mask = mask.astype(np.float32) / 255.0
         mask = np.tile(mask, (4, 1, 1))
@@ -103,12 +102,12 @@ class StableDiffusionEngine:
     def __call__(
             self,
             prompt,
-            init_image = None,
-            mask = None,
-            strength = 0.5,
-            num_inference_steps = 32,
-            guidance_scale = 7.5,
-            eta = 0.0
+            init_image=None,
+            mask=None,
+            strength=0.5,
+            num_inference_steps=32,
+            guidance_scale=7.5,
+            eta=0.0
     ):
         # extract condition
         tokens = self.tokenizer(
@@ -130,12 +129,15 @@ class StableDiffusionEngine:
                 truncation=True
             ).input_ids
             uncond_embeddings = result(
-                self.text_encoder.infer_new_request({"tokens": np.array([tokens_uncond])})
+                self.text_encoder.infer_new_request(
+                    {"tokens": np.array([tokens_uncond])})
             )
-            text_embeddings = np.concatenate((uncond_embeddings, text_embeddings), axis=0)
+            text_embeddings = np.concatenate(
+                (uncond_embeddings, text_embeddings), axis=0)
 
         # set timesteps
-        accepts_offset = "offset" in set(inspect.signature(self.scheduler.set_timesteps).parameters.keys())
+        accepts_offset = "offset" in set(inspect.signature(
+            self.scheduler.set_timesteps).parameters.keys())
         extra_set_kwargs = {}
         offset = 0
         if accepts_offset:
@@ -152,24 +154,23 @@ class StableDiffusionEngine:
             init_latents = self._encode_image(init_image)
             init_timestep = int(num_inference_steps * strength) + offset
             init_timestep = min(init_timestep, num_inference_steps)
-            timesteps = np.array([[self.scheduler.timesteps[-init_timestep]]]).astype(np.long)
+            timesteps = np.array(
+                [[self.scheduler.timesteps[-init_timestep]]]).astype(np.long)
             noise = np.random.randn(*self.latent_shape)
-            latents = self.scheduler.add_noise(init_latents, noise, timesteps)[0]
+            latents = self.scheduler.add_noise(
+                init_latents, noise, timesteps)[0]
 
         if init_image is not None and mask is not None:
             mask = self._preprocess_mask(mask)
         else:
             mask = None
 
-        # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
-        if isinstance(self.scheduler, LMSDiscreteScheduler):
-            latents = latents * self.scheduler.sigmas[0]
-
         # prepare extra kwargs for the scheduler step, since not all schedulers have the same signature
         # eta (η) is only used with the DDIMScheduler, it will be ignored for other schedulers.
         # eta corresponds to η in DDIM paper: https://arxiv.org/abs/2010.02502
         # and should be between [0, 1]
-        accepts_eta = "eta" in set(inspect.signature(self.scheduler.step).parameters.keys())
+        accepts_eta = "eta" in set(inspect.signature(
+            self.scheduler.step).parameters.keys())
         extra_step_kwargs = {}
         if accepts_eta:
             extra_step_kwargs["eta"] = eta
@@ -177,10 +178,8 @@ class StableDiffusionEngine:
         t_start = max(num_inference_steps - init_timestep + offset, 0)
         for i, t in tqdm(enumerate(self.scheduler.timesteps[t_start:])):
             # expand the latents if we are doing classifier free guidance
-            latent_model_input = np.stack([latents, latents], 0) if guidance_scale > 1.0 else latents[None]
-            if isinstance(self.scheduler, LMSDiscreteScheduler):
-                sigma = self.scheduler.sigmas[i]
-                latent_model_input = latent_model_input / ((sigma**2 + 1) ** 0.5)
+            latent_model_input = np.stack(
+                [latents, latents], 0) if guidance_scale > 1.0 else latents[None]
 
             # predict the noise residual
             noise_pred = result(self.unet.infer_new_request({
@@ -191,18 +190,19 @@ class StableDiffusionEngine:
 
             # perform guidance
             if guidance_scale > 1.0:
-                noise_pred = noise_pred[0] + guidance_scale * (noise_pred[1] - noise_pred[0])
+                noise_pred = noise_pred[0] + guidance_scale * \
+                    (noise_pred[1] - noise_pred[0])
 
             # compute the previous noisy sample x_t -> x_t-1
-            if isinstance(self.scheduler, LMSDiscreteScheduler):
-                latents = self.scheduler.step(noise_pred, i, latents, **extra_step_kwargs)["prev_sample"]
-            else:
-                latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs)["prev_sample"]
+            latents = self.scheduler.step(
+                noise_pred, t, latents, **extra_step_kwargs)["prev_sample"]
 
             # masking for inapinting
             if mask is not None:
-                init_latents_proper = self.scheduler.add_noise(init_latents, noise, t)
-                latents = ((init_latents_proper * mask) + (latents * (1 - mask)))[0]
+                init_latents_proper = self.scheduler.add_noise(
+                    init_latents, noise, t)
+                latents = ((init_latents_proper * mask) +
+                           (latents * (1 - mask)))[0]
 
         image = result(self.vae_decoder.infer_new_request({
             "latents": np.expand_dims(latents, 0)
@@ -210,5 +210,6 @@ class StableDiffusionEngine:
 
         # convert tensor to opencv's image format
         image = (image / 2 + 0.5).clip(0, 1)
-        image = (image[0].transpose(1, 2, 0)[:, :, ::-1] * 255).astype(np.uint8)
+        image = (image[0].transpose(1, 2, 0)[
+                 :, :, ::-1] * 255).astype(np.uint8)
         return image
