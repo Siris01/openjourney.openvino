@@ -52,7 +52,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # pipeline configure
-    parser.add_argument("--model", type=str, default="Siris/openjourney-openvino", help="model name")
+    parser.add_argument("--model", type=str, default="Siris/openjourney-openvino-model", help="model name")
     # inference device
     parser.add_argument("--device", type=str, default="CPU", help=f"inference device [{', '.join(Core().available_devices)}]")
     # randomizer params
