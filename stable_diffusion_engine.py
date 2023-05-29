@@ -19,7 +19,7 @@ class StableDiffusionEngine:
     def __init__(
             self,
             scheduler,
-            model="bes-dev/stable-diffusion-v1-4-openvino",
+            model="prompthero/openjourney",
             tokenizer="openai/clip-vit-large-patch14",
             device="CPU"
     ):
