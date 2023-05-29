@@ -4,7 +4,7 @@ import os
 import json
 import random
 # engine
-from stable_diffusion_engine import StableDiffusionEngine
+from engine import StableDiffusionEngine
 # scheduler
 from diffusers import LMSDiscreteScheduler, PNDMScheduler
 # utils
