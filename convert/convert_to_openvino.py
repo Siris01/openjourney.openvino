@@ -15,6 +15,7 @@ del pipe
 import gc
 from pathlib import Path
 import torch
+import os
 
 TEXT_ENCODER_ONNX_PATH = Path('text_encoder.onnx')
 TEXT_ENCODER_OV_PATH = TEXT_ENCODER_ONNX_PATH.with_suffix('.xml')
@@ -44,7 +45,7 @@ def convert_encoder_onnx(xtext_encoder: StableDiffusionPipeline, onnx_path:Path)
 
 if not TEXT_ENCODER_OV_PATH.exists():
     convert_encoder_onnx(text_encoder, TEXT_ENCODER_ONNX_PATH)
-    !mo --input_model $TEXT_ENCODER_ONNX_PATH --compress_to_fp16
+    os.system("mo --input_model $TEXT_ENCODER_ONNX_PATH --compress_to_fp16")
     print('Text Encoder successfully converted to IR')
 else:
     print(f"Text encoder will be loaded from {TEXT_ENCODER_OV_PATH}")
@@ -84,7 +85,7 @@ if not UNET_OV_PATH.exists():
     convert_unet_onnx(unet, UNET_ONNX_PATH)
     del unet
     gc.collect()
-    !mo --input_model $UNET_ONNX_PATH --compress_to_fp16
+    os.system("mo --input_model $UNET_ONNX_PATH --compress_to_fp16")
     print('Unet successfully converted to IR')
 else:
     del unet
@@ -118,7 +119,7 @@ def convert_vae_encoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
 
 if not VAE_ENCODER_OV_PATH.exists():
     convert_vae_encoder_onnx(vae, VAE_ENCODER_ONNX_PATH)
-    !mo --input_model $VAE_ENCODER_ONNX_PATH --compress_to_fp16
+    os.system("mo --input_model $VAE_ENCODER_ONNX_PATH --compress_to_fp16")
     print('VAE encoder successfully converted to IR')
 else:
     print(f"VAE encoder will be loaded from {VAE_ENCODER_OV_PATH}")
@@ -150,7 +151,7 @@ def convert_vae_decoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
 
 if not VAE_DECODER_OV_PATH.exists():
     convert_vae_decoder_onnx(vae, VAE_DECODER_ONNX_PATH)
-    !mo --input_model $VAE_DECODER_ONNX_PATH --compress_to_fp16
+    os.system("mo --input_model $VAE_DECODER_ONNX_PATH --compress_to_fp16")
     print('VAE decoder successfully converted to IR')
 else:
     print(f"VAE decoder will be loaded from {VAE_DECODER_OV_PATH}")
