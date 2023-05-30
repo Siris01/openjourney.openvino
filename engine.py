@@ -20,7 +20,9 @@ class StableDiffusionEngine:
             scheduler,
             model="Siris/openjourney-openvino-model",
             tokenizer="openai/clip-vit-large-patch14",
-            device="CPU"
+            device="CPU",
+            height=512,
+            width=512,
     ):
         self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
         self.scheduler = scheduler
@@ -41,6 +43,7 @@ class StableDiffusionEngine:
         )
         self.unet = self.core.compile_model(self._unet, device)
         self.latent_shape = tuple(self._unet.inputs[0].shape)[1:]
+        self.latent_shape = (self.latent_shape[0], height // 8, width // 8)
         # decoder
         self._vae_decoder = self.core.read_model(
             hf_hub_download(repo_id=model, filename="vae_decoder.xml"),

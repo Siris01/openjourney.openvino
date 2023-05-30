@@ -30,7 +30,9 @@ def main(args):
         model=args.model,
         scheduler=scheduler,
         tokenizer=args.tokenizer,
-        device=args.device
+        device=args.device,
+        height=args.h,
+        width=args.w,
     )
     image = engine(
         prompt=f"{args.prompt} mdjrny-v4 style",
@@ -40,7 +42,7 @@ def main(args):
         strength=args.strength,
         num_inference_steps=args.num_inference_steps,
         guidance_scale=args.guidance_scale,
-        eta=args.eta
+        eta=args.eta,
     )
     cv2.imwrite(args.output, image)
 
@@ -88,5 +90,9 @@ if __name__ == "__main__":
     # output name
     parser.add_argument("--output", type=str,
                         default="output.png", help="output image name")
+
+    parser.add_argument("--h", type=int, default=512, help="height")
+    parser.add_argument("--w", type=int, default=512, help="width")
+
     args = parser.parse_args()
     main(args)
