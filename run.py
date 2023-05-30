@@ -35,7 +35,7 @@ def main(args):
         width=args.w,
     )
     image = engine(
-        prompt=f"{args.prompt} mdjrny-v4 style",
+        prompt=f"mdjrny-v4 style {args.prompt}",
         init_image=None if args.init_image is None else cv2.imread(
             args.init_image),
         mask=None if args.mask is None else cv2.imread(args.mask, 0),
